@@ -11,18 +11,18 @@ using namespace std;
 #define SWAP_ARRAYS(a,b) {float* tmp=a;a=b;b=tmp;}
 
 Fluid::Fluid(float* image,
-						 int width, 
-						 int height, 
+						 int w_, 
+						 int h_, 
 						 float dt,
 						 float dens,
 						 int iterations) 
 						 : m_(image),
-						   w_(width), 	
-							 h_(height),
 							 dens_(dens),
 							 dt_(dt),
 							 it_(iterations) {
-	cell_num_ = (width + 2) * (height + 2);
+	int num_x = w_ + 2;
+	int num_y = h_ + 2;
+	int cell_num = num_x * num_y;
 	vector<float> u(cell_num_, 0.0);
 	vector<float> v(cell_num_, 0.0);
 	vector<float> u1(cell_num_, 0.0);
@@ -79,7 +79,15 @@ void Fluid::project() { // force imcompressibility
 			}
 }
 
-void Fluid::extrapolate() {
+void Fluid::extrapolate() { // border conditions
+	for(int i = 0; i < w_; ++i) {
+		u_[I(i,0)] = u_[I(i,1)]; // left wall
+		u_[I(i,h_-1)] = u_[I(i,h_-2)]; // right wall
+	}
+	for(int j = 0; j < h_; ++j) {
+		v_[I(0,j)] = v_[I(1,j)]; // bottom wall
+		v_[I(w_-1,j)] = v_[I(w_-2,j)]; // top wall
+	}
 }
 
 void Fluid::advect_velocity() {

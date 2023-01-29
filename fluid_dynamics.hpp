@@ -7,8 +7,8 @@ using namespace std;
 
 class Fluid {
 	private:
-		int w_; 
-		int h_;	
+		int w_;
+		int h_;
 		int cell_num_;
 		float dt_;
 		int it_;
