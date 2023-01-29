@@ -9,7 +9,7 @@ using namespace std;
 int width = 300;
 int height = 300;
 float* image = new float[width * height];
-Fluid f(image, width, height, 0.1, 10);			
+Fluid f(image, width, height, 0.1, 100, 10);			
 int brush_size = 10;
 
 void loop_code() {

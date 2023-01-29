@@ -12,20 +12,20 @@ class Fluid {
 		int cell_num_;
 		float dt_;
 		int it_;
-		float* d_;
+		float dens_;
 		vector<float>  v_;
 		vector<float>  u_;
 		vector<float>  v1_;
 		vector<float>  u1_;
 		vector<float>  p_;
 		vector<float>  s_;
-		vector<float>  m_;
+		float* m_;
 		void project();
 		void extrapolate();
 		void advect_velocity();
 		void advect_smoke();
 	public:
-		Fluid(float*, int, int, float, int);
+		Fluid(float*, int, int, float, float, int);
 		void addSmoke(int, int, float);
 		void addWind(int, int, float, float);
 		void evaluate();
