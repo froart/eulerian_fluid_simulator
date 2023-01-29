@@ -13,6 +13,7 @@ class Fluid {
 		float dt_;
 		int it_;
 		float dens_;
+		float over_relaxation_;
 		vector<float>  v_;
 		vector<float>  u_;
 		vector<float>  v1_;

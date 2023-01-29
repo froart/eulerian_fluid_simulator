@@ -23,18 +23,19 @@ Fluid::Fluid(float* image,
 							 dt_(dt),
 							 it_(iterations) {
 	cell_num_ = (width + 2) * (height + 2);
-	vector<float> v(cell_num_, 0.0);
 	vector<float> u(cell_num_, 0.0);
-	vector<float> v1(cell_num_, 0.0);
+	vector<float> v(cell_num_, 0.0);
 	vector<float> u1(cell_num_, 0.0);
+	vector<float> v1(cell_num_, 0.0);
 	vector<float> p(cell_num_, 0.0);
 	vector<float> s(cell_num_, 0.0);
-	v_ = v;
 	u_ = u;
-	v1_ = v1;
+	v_ = v;
+	u1_ = u1;
 	v1_ = v1;
 	p_ = p;
 	s_ = s;
+	over_relaxation_ = 1.9;
 };
 
 void Fluid::addSmoke(int x, int y, float amount) {
@@ -51,8 +52,31 @@ void Fluid::evaluate() {
 	advect_smoke();
 }
 
-void Fluid::project() {
-	
+void Fluid::project() { // force imcompressibility
+	for(int k; k < it_; k++)
+		for(int j = 1; j < h_-1; j++)
+			for(int i = 1; i < w_-1; i++) {
+				if(s_[I(i,j)] == 0.0) continue; // if evaluating at wall
+
+				float sx0 = s_[I(i-1,j)];
+				float sx1 = s_[I(i+1,j)];
+				float sy0 = s_[I(i,j-1)];
+				float sy1 = s_[I(i,j+1)];
+				float s = sx0 + sx1 + sy0 + sy1;
+				if(s == 0.0) continue; // if nothing to compute here...
+
+				float div = u_[I(i+1,j)] - u_[I(i,j)] + v_[I(i,j+1)] - v_[I(i,j)];
+				// computing the pressure (not necessary for the simulation
+				// FIXME  should be minus???
+				float p = -(div / s) * over_relaxation_;
+				// TODO where does this equation come from???
+				p_[I(i,j)] += p * (dens_ * h_) / dt_; 
+				// fix the fluid to be imcompressible
+				u_[I(i,j)] -= sx0 * p;
+				u_[I(i+1,j)] += sx1 * p;
+				v_[I(i,j)] -= sy0 * p;
+				v_[I(i,j+1)] += sy1 * p;
+			}
 }
 
 void Fluid::extrapolate() {
