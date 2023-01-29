@@ -1,5 +1,5 @@
 NCCX    = g++ 
-CFLAGS  = --std=c++11 -w
+CFLAGS  = --std=c++20 -w
 LDFLAGS = -lm -lGL -lglut -lGLU -g -fopenmp
 #INCDIR  = ./inc
 #SRCDIR  = ./src
