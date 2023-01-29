@@ -9,7 +9,7 @@ using namespace std;
 int width = 300;
 int height = 300;
 float* image = new float[width * height];
-Fluid f(move(image), width, height, 0.1, 10);			
+Fluid f(image, width, height, 0.1, 10);			
 int brush_size = 10;
 
 void loop_code() {
@@ -32,7 +32,7 @@ int main() {
 
 void mouse(int button, int state, int x, int y){
 	if(button == GLUT_RIGHT_BUTTON)
-		std::fill_n(image, width*height, 0);
+		std::fill_n(image, width*height, 0.0);
 	if(button == GLUT_LEFT_BUTTON) {
 		for(int i = -brush_size/2; i <= brush_size/2; ++i)
 			for(int j = -brush_size/2; j <= brush_size/2; ++j)
@@ -42,7 +42,9 @@ void mouse(int button, int state, int x, int y){
 
 void keyboard(unsigned char c, int x, int y) {
   if(c == 27) {
-		delete &f;
+		cout << "image destructor is called" << endl;
+		delete[] image;
+//		delete &f;
 		exit(0);
 	}
 }

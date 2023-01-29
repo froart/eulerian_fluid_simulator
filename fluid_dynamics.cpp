@@ -3,8 +3,6 @@
 #include <math.h>
 #include <iostream>
 #include <omp.h>
-#include <memory>
-#include <algorithm>
 #include <vector>
 
 using namespace std;
@@ -23,13 +21,20 @@ Fluid::Fluid(float* image,
 							 dt_(dt),
 							 it_(iterations) {
 	cell_num_ = (width + 2) * (height + 2);
-	fill_n(v_.begin(), cell_num_, 0.0);	// x-velocity grid 
-	fill_n(u_.begin(), cell_num_, 0.0); // y-velocity grid
-	fill_n(v1_.begin(), cell_num_, 0.0); // new x-velocity grid
-	fill_n(u1_.begin(), cell_num_, 0.0); // new y-velocity grid
-	fill_n(p_.begin(), cell_num_, 0.0); // pressure grid
-	fill_n(s_.begin(), cell_num_, 0.0); // scalers grid: 0.0 for wall, 1 for fluid 
-	fill_n(m_.begin(), cell_num_, 0.0); // TODO what is it for?
+	vector<float> v(cell_num_, 0.0);
+	vector<float> u(cell_num_, 0.0);
+	vector<float> v1(cell_num_, 0.0);
+	vector<float> u1(cell_num_, 0.0);
+	vector<float> p(cell_num_, 0.0);
+	vector<float> s(cell_num_, 0.0);
+	vector<float> m(cell_num_, 0.0);
+	v_ = v;
+	u_ = u;
+	v1_ = v1;
+	v1_ = v1;
+	p_ = p;
+	s_ = s;
+	m_ = m;
 };
 
 void Fluid::addSmoke(int x, int y, float amount) {
@@ -42,8 +47,7 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 }
 
 void Fluid::evaluate() {
-	for(int i = 0; i < cell_num_; i++)
-		p_[i] = 0.0; 
+	fill_n(p_.begin(), cell_num_, 0.0);
 	project();
 	extrapolate();
 	advect_velocity();
@@ -60,8 +64,4 @@ void Fluid::advect_velocity() {
 }
 
 void Fluid::advect_smoke() {
-}
-
-Fluid::~Fluid() {
-	delete[] d_;
 }

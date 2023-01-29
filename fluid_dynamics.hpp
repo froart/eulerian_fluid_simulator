@@ -1,7 +1,6 @@
 #ifndef FLUID_DYNAMICS_HPP_
 #define FLUID_DYNAMICS_HPP_
 
-#include <memory>
 #include <vector>
 
 using namespace std;
@@ -27,7 +26,6 @@ class Fluid {
 		void advect_smoke();
 	public:
 		Fluid(float*, int, int, float, int);
-		~Fluid();
 		void addSmoke(int, int, float);
 		void addWind(int, int, float, float);
 		void evaluate();
