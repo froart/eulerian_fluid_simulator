@@ -9,7 +9,6 @@ class Fluid {
 	private:
 		int w_;
 		int h_;
-		int cell_num_;
 		float dt_;
 		int it_;
 		float dens_;
@@ -25,6 +24,7 @@ class Fluid {
 		void extrapolate();
 		void advect_velocity();
 		void advect_smoke();
+		float sample_field(float, float, int);
 	public:
 		Fluid(float*, int, int, float, float, int);
 		void addSmoke(int, int, float);

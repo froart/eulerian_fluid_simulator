@@ -7,6 +7,10 @@
 
 using namespace std;
 
+#define U_FIELD 0
+#define V_FIELD 1
+#define S_FIELD 2
+
 #define I(x,y) ((x)+(w_)*(y))
 #define SWAP_ARRAYS(a,b) {float* tmp=a;a=b;b=tmp;}
 
@@ -23,12 +27,12 @@ Fluid::Fluid(float* image,
 	int num_x = w_ + 2;
 	int num_y = h_ + 2;
 	int cell_num = num_x * num_y;
-	vector<float> u(cell_num_, 0.0);
-	vector<float> v(cell_num_, 0.0);
-	vector<float> u1(cell_num_, 0.0);
-	vector<float> v1(cell_num_, 0.0);
-	vector<float> p(cell_num_, 0.0);
-	vector<float> s(cell_num_, 0.0);
+	vector<float> u(cell_num, 0.0);
+	vector<float> v(cell_num, 0.0);
+	vector<float> u1(cell_num, 0.0);
+	vector<float> v1(cell_num, 0.0);
+	vector<float> p(cell_num, 0.0);
+	vector<float> s(cell_num, 0.0);
 	u_ = u;
 	v_ = v;
 	u1_ = u1;
@@ -45,7 +49,7 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 }
 
 void Fluid::evaluate() {
-	fill_n(p_.begin(), cell_num_, 0.0);
+	fill_n(p_.begin(), (w_+2) * (h_+2), 0.0);
 	project();
 	extrapolate();
 	advect_velocity();
@@ -79,7 +83,7 @@ void Fluid::project() { // force imcompressibility
 			}
 }
 
-void Fluid::extrapolate() { // border conditions
+void Fluid::extrapolate() { // enforce border conditions
 	for(int i = 0; i < w_; ++i) {
 		u_[I(i,0)] = u_[I(i,1)]; // left wall
 		u_[I(i,h_-1)] = u_[I(i,h_-2)]; // right wall
@@ -95,3 +99,7 @@ void Fluid::advect_velocity() {
 
 void Fluid::advect_smoke() {
 }
+
+float sample_field(float x, float y, int field) {
+
+} 
