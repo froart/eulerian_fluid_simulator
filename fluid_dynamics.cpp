@@ -4,6 +4,8 @@
 #include <iostream>
 #include <omp.h>
 #include <memory>
+#include <algorithm>
+#include <vector>
 
 using namespace std;
 
@@ -20,14 +22,14 @@ Fluid::Fluid(float* image,
 							 h_(height),
 							 dt_(dt),
 							 it_(iterations) {
-	int cell_num = (width + 2) * (height + 2);
-	unique_ptr<float[]> v_(new float[cell_num]); // x-velocity grid
-	unique_ptr<float[]> u_(new float[cell_num]); // y-velocity grid
-	unique_ptr<float[]> u1_(new float[cell_num]); // new x-velocity grid
-	unique_ptr<float[]> v1_(new float[cell_num]); // new y-velocity grid
-	unique_ptr<float[]> p_(new float[cell_num]); // pressure grid
-	unique_ptr<float[]> s_(new float[cell_num]); // scalers grid: 0 for wall, 1 for fluid
-	unique_ptr<float[]> m_(new float[cell_num]); // TODO what is it for?
+	cell_num_ = (width + 2) * (height + 2);
+	fill_n(v_.begin(), cell_num_, 0.0);	// x-velocity grid 
+	fill_n(u_.begin(), cell_num_, 0.0); // y-velocity grid
+	fill_n(v1_.begin(), cell_num_, 0.0); // new x-velocity grid
+	fill_n(u1_.begin(), cell_num_, 0.0); // new y-velocity grid
+	fill_n(p_.begin(), cell_num_, 0.0); // pressure grid
+	fill_n(s_.begin(), cell_num_, 0.0); // scalers grid: 0.0 for wall, 1 for fluid 
+	fill_n(m_.begin(), cell_num_, 0.0); // TODO what is it for?
 };
 
 void Fluid::addSmoke(int x, int y, float amount) {
@@ -40,6 +42,24 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 }
 
 void Fluid::evaluate() {
+	for(int i = 0; i < cell_num_; i++)
+		p_[i] = 0.0; 
+	project();
+	extrapolate();
+	advect_velocity();
+	advect_smoke();
+}
+
+void Fluid::project() {
+}
+
+void Fluid::extrapolate() {
+}
+
+void Fluid::advect_velocity() {
+}
+
+void Fluid::advect_smoke() {
 }
 
 Fluid::~Fluid() {

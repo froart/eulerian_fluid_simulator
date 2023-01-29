@@ -2,6 +2,7 @@
 #define FLUID_DYNAMICS_HPP_
 
 #include <memory>
+#include <vector>
 
 using namespace std;
 
@@ -9,16 +10,21 @@ class Fluid {
 	private:
 		int w_; 
 		int h_;	
+		int cell_num_;
 		float dt_;
 		int it_;
 		float* d_;
-		unique_ptr<float[]> v_;
-		unique_ptr<float[]> u_;
-		unique_ptr<float[]> v1_;
-		unique_ptr<float[]> u1_;
-		unique_ptr<float[]> p_;
-		unique_ptr<float[]> s_;
-		unique_ptr<float[]> m_;
+		vector<float>  v_;
+		vector<float>  u_;
+		vector<float>  v1_;
+		vector<float>  u1_;
+		vector<float>  p_;
+		vector<float>  s_;
+		vector<float>  m_;
+		void project();
+		void extrapolate();
+		void advect_velocity();
+		void advect_smoke();
 	public:
 		Fluid(float*, int, int, float, int);
 		~Fluid();
