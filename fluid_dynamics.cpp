@@ -34,6 +34,7 @@ Fluid::Fluid(float* image,
 	vector<float> p(cell_num, 0.0);
 	vector<float> s(cell_num, 0.0);
 	vector<float> m(image, image + sizeof(image) / sizeof(image[0]));
+	vector<float> m1(cell_num, 0.0);
 	u_.swap(u);
 	v_.swap(v);
 	u1_.swap(u1);
@@ -41,6 +42,7 @@ Fluid::Fluid(float* image,
 	p_.swap(p);
 	s_.swap(s);
 	m_.swap(m);
+	m1_.swap(m1);
 	over_relaxation_ = 1.9;
 };
 
@@ -129,7 +131,19 @@ void Fluid::advect_velocity() {
 }
 
 void Fluid::advect_smoke() {
-
+	m1_.swap(m_);	
+	float h = cell_size_;
+	float h2 = 0.5 * h;
+	for(int j = 1; j < ny_; ++j)
+		for(int i = 1; i < nx_; ++i)
+			if(s_[I(i,j)]) {
+				float u = (u_[I(i,j)] + u_[I(i+1,j)]) * 0.5;	
+				float v = (v_[I(i,j)] + v_[I(i,j+1)]) * 0.5;	
+				float x = i*h + h2 - dt_*u;
+				float y = j*h + h2 - dt_*v;
+				m1_[I(i,j)] = sample_field(x, y, S_FIELD);
+			}
+	m_.swap(m1_);	
 }
 
 float Fluid::sample_field(float x_p, float y_p, int field) {
@@ -165,6 +179,5 @@ float Fluid::sample_field(float x_p, float y_p, int field) {
 						+ tx * sy * f[x1*nx_+y0]
 						+ tx * ty * f[x1*nx_+y1]
 						+ sx * ty * f[x0*nx_+y1];
-
 	return val;
 } 

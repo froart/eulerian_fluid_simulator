@@ -21,6 +21,7 @@ class Fluid {
 		vector<float> p_;
 		vector<float> s_;
 		vector<float> m_;
+		vector<float> m1_;
 		void project();
 		void extrapolate();
 		void advect_velocity();
