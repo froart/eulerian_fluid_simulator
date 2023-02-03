@@ -47,13 +47,16 @@ Fluid::Fluid(float* image,
 };
 
 void Fluid::addSmoke(int x, int y, float amount) {
+	m_[I(x,y)] = amount;
 }
 
 void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
+	u_[I(x,y)] = x_amount;
+	v_[I(x,y)] = y_amount;
 }
 
 void Fluid::evaluate() {
-	fill_n(p_.begin(), nx_ * ny_, 0.0);
+	fill(p_.begin(), p_.end(), 0.0);
 	project();
 	extrapolate();
 	advect_velocity();
