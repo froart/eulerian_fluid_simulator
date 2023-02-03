@@ -1,6 +1,6 @@
 #include "fluid_dynamics.hpp"
 #include "opengl_setup.hpp"
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include <omp.h>
 #include <vector>
@@ -20,8 +20,7 @@ Fluid::Fluid(float* image,
 						 float dt,
 						 float dens,
 						 int iterations) 
-						 : m_(image),
-							 cell_size_(cell_size),
+						 : cell_size_(cell_size),
 							 nx_(nx+2),
 							 ny_(ny+2),
 							 dt_(dt),
@@ -34,12 +33,14 @@ Fluid::Fluid(float* image,
 	vector<float> v1(cell_num, 0.0);
 	vector<float> p(cell_num, 0.0);
 	vector<float> s(cell_num, 0.0);
+	vector<float> m(image, image + sizeof(image) / sizeof(image[0]));
 	u_.swap(u);
 	v_.swap(v);
 	u1_.swap(u1);
 	v1_.swap(v1);
 	p_.swap(p);
 	s_.swap(s);
+	m_.swap(m);
 	over_relaxation_ = 1.9;
 };
 
@@ -112,10 +113,10 @@ void Fluid::advect_velocity() {
 				u = sample_field(x, y, U_FIELD);
 				u1_[I(i,j)] = u;
 			}
-			if(s_[I(i,j)] && s_[I(i-1,j)] && i < nx_-1) { // u-component
-				float x = (float) i * h + h2; // u-component is situated at this point
+			if(s_[I(i,j)] && s_[I(i-1,j)] && i < nx_-1) { // v-component
+				float x = (float) i * h + h2; // v-component is situated at this point
 				float y = (float) j * h;
-				float u = (u_[I(i,j)] + u_[I(i,j-1)] + u_[I(i+1,j-1)] + u_[I(i+1,j)]) * 0.25;	// v-component in this case is averaged by 4 values around
+				float u = (u_[I(i,j)] + u_[I(i,j-1)] + u_[I(i+1,j-1)] + u_[I(i+1,j)]) * 0.25;	// u-component in this case is averaged by 4 values around
 				float v = v_[I(i,j)];	
 				x -= u*dt_;
 				y -= v*dt_;
@@ -131,6 +132,39 @@ void Fluid::advect_smoke() {
 
 }
 
-float sample_field(float x, float y, int field) {
+float Fluid::sample_field(float x_p, float y_p, int field) {
+	float h = cell_size_;
+	float h1 = 1.0 / cell_size_;
+	float h2 = cell_size_ * 0.5;
+	
+	float x = fmax(fmin(x_p, nx_*h), h);
+	float y = fmax(fmin(y_p, ny_*h), h);
 
+	float dx, dy = 0.0;
+	vector<float>& f = m_;
+
+	switch(field) {
+		case U_FIELD: f = u_; dy = h2; break;
+		case V_FIELD: f = v_; dx = h2; break;
+		case S_FIELD: dx = h2; dy = h2; break;
+	}
+
+	// TODO: what is it?
+	float x0 = fmin(floor((x-dx)*h1), nx_-1); 	
+	float tx = ((x-dx) - x0*h) * h1;
+	float x1 = fmin(x0 + 1, nx_-1);
+
+	float y0 = fmin(floor((y-dy)*h1), ny_-1); 	
+	float ty = ((y-dy) - y0*h) * h1;
+	float y1 = fmin(y0 + 1, ny_-1);
+
+	float sx = 1.0 - tx;
+	float sy = 1.0 - ty;
+
+	float val = sx * sy * f[x0*nx_+y0]
+						+ tx * sy * f[x1*nx_+y0]
+						+ tx * ty * f[x1*nx_+y1]
+						+ sx * ty * f[x0*nx_+y1];
+
+	return val;
 } 
