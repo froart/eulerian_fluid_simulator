@@ -7,6 +7,8 @@
 
 using namespace std;
 
+#define mark(x) cout << "reached the mark; " << x << endl; // DEBUG MARK
+
 #define U_FIELD 0
 #define V_FIELD 1
 #define S_FIELD 2
@@ -33,7 +35,7 @@ Fluid::Fluid(float* image,
 	vector<float> v1(cell_num, 0.0);
 	vector<float> p(cell_num, 0.0);
 	vector<float> s(cell_num, 0.0);
-	vector<float> m(image, image + sizeof(image) / sizeof(image[0]));
+	vector<float> m(cell_num, 0.0);
 	vector<float> m1(cell_num, 0.0);
 	u_.swap(u);
 	v_.swap(v);
@@ -55,27 +57,27 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 	v_[I(x,y)] = y_amount;
 }
 
-void Fluid::evaluate() {
+float* Fluid::evaluate() {
 	fill(p_.begin(), p_.end(), 0.0);
 	project();
 	extrapolate();
 	advect_velocity();
 	advect_smoke();
+	static float* p = &m_[0];
+	return p;
 }
 
 void Fluid::project() { // force imcompressibility
-	for(int k; k < it_; k++)
+	for(int k = 0; k < it_; k++)
 		for(int j = 1; j < ny_-1; j++)
 			for(int i = 1; i < nx_-1; i++) {
-				if(s_[I(i,j)] == 0.0) continue; // if evaluating at an obstacle
-
+				if(!s_[I(i,j)]) continue; // if evaluating at an obstacle
 				float sx0 = s_[I(i-1,j)];
 				float sx1 = s_[I(i+1,j)];
 				float sy0 = s_[I(i,j-1)];
 				float sy1 = s_[I(i,j+1)];
 				float s = sx0 + sx1 + sy0 + sy1;
-				if(s == 0.0) continue; // if nothing to compute here...
-
+				if(!s) continue; // if nothing to compute here...
 				float div = u_[I(i+1,j)] - u_[I(i,j)] + v_[I(i,j+1)] - v_[I(i,j)];
 				// computing the pressure (not necessary for the simulation
 				// FIXME  should be minus???
@@ -137,8 +139,8 @@ void Fluid::advect_smoke() {
 	m1_.swap(m_);	
 	float h = cell_size_;
 	float h2 = 0.5 * h;
-	for(int j = 1; j < ny_; ++j)
-		for(int i = 1; i < nx_; ++i)
+	for(int j = 1; j < ny_-1; ++j)
+		for(int i = 1; i < nx_-1; ++i)
 			if(s_[I(i,j)]) {
 				float u = (u_[I(i,j)] + u_[I(i+1,j)]) * 0.5;	
 				float v = (v_[I(i,j)] + v_[I(i,j+1)]) * 0.5;	
@@ -165,7 +167,6 @@ float Fluid::sample_field(float x_p, float y_p, int field) {
 		case V_FIELD: f = v_; dx = h2; break;
 		case S_FIELD: dx = h2; dy = h2; break;
 	}
-
 	// TODO: what is it?
 	float x0 = fmin(floor((x-dx)*h1), nx_-1); 	
 	float tx = ((x-dx) - x0*h) * h1;

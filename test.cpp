@@ -9,8 +9,7 @@ using namespace std;
 int width = 300;
 int height = 300;
 float* image = new float[width * height];
-float cell_size = 1.0;
-Fluid f(image, cell_size, width, height, 0.1, 100, 10);			
+Fluid f(image, 1.0, width, height, 0.1, 100, 5);			
 int brush_size = 10;
 
 void loop_code() {
@@ -22,7 +21,7 @@ void loop_code() {
   	f.addWind(width/3, 2*height/3+k, speed, 0); 
   	f.addWind(2*width/3+k, 2*height/3, 0, -speed); 
   }
-	f.evaluate();
+	image = f.evaluate();
 	return;
 }
 
@@ -43,8 +42,8 @@ void mouse(int button, int state, int x, int y){
 
 void keyboard(unsigned char c, int x, int y) {
   if(c == 27) {
-		cout << "image destructor is called" << endl;
-		delete[] image;
+//		cout << "image destructor is called" << endl;
+//		delete[] image;
 //		delete &f;
 		exit(0);
 	}

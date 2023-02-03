@@ -22,6 +22,8 @@ class Fluid {
 		vector<float> s_;
 		vector<float> m_;
 		vector<float> m1_;
+//		float* m_;
+//		float* m1_;
 		void project();
 		void extrapolate();
 		void advect_velocity();
@@ -31,7 +33,7 @@ class Fluid {
 		Fluid(float*, float, int, int, float, float, int);
 		void addSmoke(int, int, float);
 		void addWind(int, int, float, float);
-		void evaluate();
+		float* evaluate();
 };
 
 #endif // FLUID_DYNAMICS_HPP_
