@@ -12,7 +12,6 @@ using namespace std;
 #define S_FIELD 2
 
 #define I(x,y) ((x)+(nx_)*(y))
-#define SWAP_ARRAYS(a,b) {float* tmp=a;a=b;b=tmp;}
 
 Fluid::Fluid(float* image,
 						 float cell_size,
@@ -35,12 +34,12 @@ Fluid::Fluid(float* image,
 	vector<float> v1(cell_num, 0.0);
 	vector<float> p(cell_num, 0.0);
 	vector<float> s(cell_num, 0.0);
-	u_ = u;
-	v_ = v;
-	u1_ = u1;
-	v1_ = v1;
-	p_ = p;
-	s_ = s;
+	u_.swap(u);
+	v_.swap(v);
+	u1_.swap(u1);
+	v1_.swap(v1);
+	p_.swap(p);
+	s_.swap(s);
 	over_relaxation_ = 1.9;
 };
 
@@ -97,15 +96,35 @@ void Fluid::extrapolate() { // enforce border conditions
 }
 
 void Fluid::advect_velocity() {
+	u1_.swap(u_);
+	v1_.swap(v_);
+	float h = cell_size_;
+	float h2 = cell_size_ * 0.5;
 	for(int j = 1; j < ny_; ++j)
 		for(int i = 1; i < nx_; ++i) {
 			if(s_[I(i,j)] && s_[I(i,j-1)] && j < ny_-1) { // u-component
-				float x = (float) i; 
-	//			float y = 
-
+				float x = (float) i * h;
+				float y = (float) j * h + h2; // u-component is situated at this point
+				float u = u_[I(i,j)];	
+				float v = (v_[I(i-1,j)] + v_[I(i-1,j+1)] + v_[I(i,j)] + v_[I(i,j+1)]) * 0.25;	// v-component in this case is averaged by 4 values around
+				x -= u*dt_;
+				y -= v*dt_;
+				u = sample_field(x, y, U_FIELD);
+				u1_[I(i,j)] = u;
 			}
-
+			if(s_[I(i,j)] && s_[I(i-1,j)] && i < nx_-1) { // u-component
+				float x = (float) i * h + h2; // u-component is situated at this point
+				float y = (float) j * h;
+				float u = (u_[I(i,j)] + u_[I(i,j-1)] + u_[I(i+1,j-1)] + u_[I(i+1,j)]) * 0.25;	// v-component in this case is averaged by 4 values around
+				float v = v_[I(i,j)];	
+				x -= u*dt_;
+				y -= v*dt_;
+				v = sample_field(x, y, V_FIELD);
+				v1_[I(i,j)] = v;
+			}
 		}
+	u_.swap(u1_);
+	v_.swap(v1_);
 }
 
 void Fluid::advect_smoke() {
