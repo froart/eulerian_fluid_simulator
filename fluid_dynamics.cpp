@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define mark(x) cout << "reached the mark; " << x << endl; // DEBUG MARK
+#define mark(x) cout << "reached the mark; " << x << endl // DEBUG MARK
 
 #define U_FIELD 0
 #define V_FIELD 1
@@ -34,9 +34,14 @@ Fluid::Fluid(float* image,
 	vector<float> u1(cell_num, 0.0);
 	vector<float> v1(cell_num, 0.0);
 	vector<float> p(cell_num, 0.0);
-	vector<float> s(cell_num, 0.0);
+	vector<float> s(cell_num, 1.0); // 1.0 for fluid
 	vector<float> m(cell_num, 0.0);
 	vector<float> m1(cell_num, 0.0);
+	for(int j = 0; j < ny; ++j)
+		for(int i = 0; i < nx; ++i) {
+			if(i == 0 || j == 0 || j == ny-1) // right border is opened for the smoke to flow out
+				s[I(i,j)] == 0.0; // 0.0 for obstacle
+			}
 	u_.swap(u);
 	v_.swap(v);
 	u1_.swap(u1);
@@ -63,7 +68,7 @@ float* Fluid::evaluate() {
 	extrapolate();
 	advect_velocity();
 	advect_smoke();
-	static float* p = &m_[0];
+	float* p = &m_[0];
 	return p;
 }
 
@@ -108,8 +113,8 @@ void Fluid::advect_velocity() {
 	v1_.swap(v_);
 	float h = cell_size_;
 	float h2 = cell_size_ * 0.5;
-	for(int j = 1; j < ny_; ++j)
-		for(int i = 1; i < nx_; ++i) {
+	for(int j = 1; j < ny_; j++)
+		for(int i = 1; i < nx_; i++) {
 			if(s_[I(i,j)] && s_[I(i,j-1)] && j < ny_-1) { // u-component
 				float x = (float) i * h;
 				float y = (float) j * h + h2; // u-component is situated at this point
@@ -117,7 +122,7 @@ void Fluid::advect_velocity() {
 				float v = (v_[I(i-1,j)] + v_[I(i-1,j+1)] + v_[I(i,j)] + v_[I(i,j+1)]) * 0.25;	// v-component in this case is averaged by 4 values around
 				x -= u*dt_;
 				y -= v*dt_;
-				u = sample_field(x, y, U_FIELD);
+				u = sample_field(x, y, U_FIELD, u_);
 				u1_[I(i,j)] = u;
 			}
 			if(s_[I(i,j)] && s_[I(i-1,j)] && i < nx_-1) { // v-component
@@ -127,9 +132,10 @@ void Fluid::advect_velocity() {
 				float v = v_[I(i,j)];	
 				x -= u*dt_;
 				y -= v*dt_;
-				v = sample_field(x, y, V_FIELD);
+				v = sample_field(x, y, V_FIELD, v_);
 				v1_[I(i,j)] = v;
 			}
+//mark(I(i,j));
 		}
 	u_.swap(u1_);
 	v_.swap(v1_);
@@ -146,12 +152,12 @@ void Fluid::advect_smoke() {
 				float v = (v_[I(i,j)] + v_[I(i,j+1)]) * 0.5;	
 				float x = i*h + h2 - dt_*u;
 				float y = j*h + h2 - dt_*v;
-				m1_[I(i,j)] = sample_field(x, y, S_FIELD);
+				m1_[I(i,j)] = sample_field(x, y, S_FIELD, m_);
 			}
 	m_.swap(m1_);	
 }
 
-float Fluid::sample_field(float x_p, float y_p, int field) {
+float Fluid::sample_field(float x_p, float y_p, int field, vector<float>& vec) {
 	float h = cell_size_;
 	float h1 = 1.0 / cell_size_;
 	float h2 = cell_size_ * 0.5;
@@ -160,11 +166,10 @@ float Fluid::sample_field(float x_p, float y_p, int field) {
 	float y = fmax(fmin(y_p, ny_*h), h);
 
 	float dx, dy = 0.0;
-	vector<float>& f = m_;
-
+//	vector<float>& f = m_;
 	switch(field) {
-		case U_FIELD: f = u_; dy = h2; break;
-		case V_FIELD: f = v_; dx = h2; break;
+		case U_FIELD:/* f = u_;*/ dy = h2; break;
+		case V_FIELD:/* f = v_;*/ dx = h2; break;
 		case S_FIELD: dx = h2; dy = h2; break;
 	}
 	// TODO: what is it?
@@ -179,9 +184,9 @@ float Fluid::sample_field(float x_p, float y_p, int field) {
 	float sx = 1.0 - tx;
 	float sy = 1.0 - ty;
 
-	float val = sx * sy * f[x0*nx_+y0]
-						+ tx * sy * f[x1*nx_+y0]
-						+ tx * ty * f[x1*nx_+y1]
-						+ sx * ty * f[x0*nx_+y1];
+	float val = sx * sy * vec[x0*nx_+y0]
+						+ tx * sy * vec[x1*nx_+y0]
+						+ tx * ty * vec[x1*nx_+y1]
+						+ sx * ty * vec[x0*nx_+y1];
 	return val;
 } 
