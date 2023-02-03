@@ -11,22 +11,24 @@ using namespace std;
 #define V_FIELD 1
 #define S_FIELD 2
 
-#define I(x,y) ((x)+(w_)*(y))
+#define I(x,y) ((x)+(nx_)*(y))
 #define SWAP_ARRAYS(a,b) {float* tmp=a;a=b;b=tmp;}
 
 Fluid::Fluid(float* image,
-						 int w_, 
-						 int h_, 
+						 float cell_size,
+						 int nx, 
+						 int ny, 
 						 float dt,
 						 float dens,
 						 int iterations) 
 						 : m_(image),
-							 dens_(dens),
+							 cell_size_(cell_size),
+							 nx_(nx+2),
+							 ny_(ny+2),
 							 dt_(dt),
+							 dens_(dens),
 							 it_(iterations) {
-	int num_x = w_ + 2;
-	int num_y = h_ + 2;
-	int cell_num = num_x * num_y;
+	int cell_num = (nx+2) * (ny+2);
 	vector<float> u(cell_num, 0.0);
 	vector<float> v(cell_num, 0.0);
 	vector<float> u1(cell_num, 0.0);
@@ -49,7 +51,7 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 }
 
 void Fluid::evaluate() {
-	fill_n(p_.begin(), (w_+2) * (h_+2), 0.0);
+	fill_n(p_.begin(), nx_ * ny_, 0.0);
 	project();
 	extrapolate();
 	advect_velocity();
@@ -58,9 +60,9 @@ void Fluid::evaluate() {
 
 void Fluid::project() { // force imcompressibility
 	for(int k; k < it_; k++)
-		for(int j = 1; j < h_-1; j++)
-			for(int i = 1; i < w_-1; i++) {
-				if(s_[I(i,j)] == 0.0) continue; // if evaluating at wall
+		for(int j = 1; j < ny_-1; j++)
+			for(int i = 1; i < nx_-1; i++) {
+				if(s_[I(i,j)] == 0.0) continue; // if evaluating at an obstacle
 
 				float sx0 = s_[I(i-1,j)];
 				float sx1 = s_[I(i+1,j)];
@@ -74,7 +76,7 @@ void Fluid::project() { // force imcompressibility
 				// FIXME  should be minus???
 				float p = -(div / s) * over_relaxation_;
 				// TODO where does this equation come from???
-				p_[I(i,j)] += p * (dens_ * h_) / dt_; 
+				p_[I(i,j)] += p * (dens_ * cell_size_) / dt_; 
 				// fix the fluid to be imcompressible
 				u_[I(i,j)] -= sx0 * p;
 				u_[I(i+1,j)] += sx1 * p;
@@ -84,20 +86,30 @@ void Fluid::project() { // force imcompressibility
 }
 
 void Fluid::extrapolate() { // enforce border conditions
-	for(int i = 0; i < w_; ++i) {
+	for(int i = 0; i < nx_; ++i) {
 		u_[I(i,0)] = u_[I(i,1)]; // left wall
-		u_[I(i,h_-1)] = u_[I(i,h_-2)]; // right wall
+		u_[I(i,ny_-1)] = u_[I(i,ny_-2)]; // right wall
 	}
-	for(int j = 0; j < h_; ++j) {
+	for(int j = 0; j < ny_; ++j) {
 		v_[I(0,j)] = v_[I(1,j)]; // bottom wall
-		v_[I(w_-1,j)] = v_[I(w_-2,j)]; // top wall
+		v_[I(nx_-1,j)] = v_[I(nx_-2,j)]; // top wall
 	}
 }
 
 void Fluid::advect_velocity() {
+	for(int j = 1; j < ny_; ++j)
+		for(int i = 1; i < nx_; ++i) {
+			if(s_[I(i,j)] && s_[I(i,j-1)] && j < ny_-1) { // u-component
+				float x = (float) i; 
+	//			float y = 
+
+			}
+
+		}
 }
 
 void Fluid::advect_smoke() {
+
 }
 
 float sample_field(float x, float y, int field) {

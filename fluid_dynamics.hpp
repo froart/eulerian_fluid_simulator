@@ -7,8 +7,9 @@ using namespace std;
 
 class Fluid {
 	private:
-		int w_;
-		int h_;
+		float cell_size_;
+		int nx_;
+		int ny_;
 		float dt_;
 		int it_;
 		float dens_;
@@ -26,7 +27,7 @@ class Fluid {
 		void advect_smoke();
 		float sample_field(float, float, int);
 	public:
-		Fluid(float*, int, int, float, float, int);
+		Fluid(float*, float, int, int, float, float, int);
 		void addSmoke(int, int, float);
 		void addWind(int, int, float, float);
 		void evaluate();
