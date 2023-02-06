@@ -17,8 +17,7 @@ using namespace std;
 
 #define I(x,y) ((x)+(nx_)*(y))
 
-Fluid::Fluid(float* image,
-						 float cell_size,
+Fluid::Fluid(float cell_size,
 						 int nx, 
 						 int ny, 
 						 float dt,
@@ -60,7 +59,7 @@ float* Fluid::setImage() {
 }
 int flag = 0;
 void Fluid::addSmoke(int x, int y, float amount) {
-	m_[I(x,y)] = amount;
+	m_[x+(nx_-2)*y] = amount;
 	flag = 1;
 }
 
@@ -75,6 +74,10 @@ void Fluid::evaluate() {
 	extrapolate();
 	advect_velocity();
 	advect_smoke();
+}
+
+void Fluid::clearImage() {
+		std::fill(m_.begin(), m_.end() , 0.0);
 }
 
 void Fluid::project() { // force imcompressibility

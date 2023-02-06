@@ -28,11 +28,12 @@ class Fluid {
 		void advect_smoke();
 		float sample_field(float, float, int, vector<float>&);
 	public:
-		Fluid(float*, float, int, int, float, float, int);
+		Fluid(float, int, int, float, float, int);
 		float* setImage();
 		void addSmoke(int, int, float);
 		void addWind(int, int, float, float);
 		void evaluate();
+		void clearImage();
 };
 
 #endif // FLUID_DYNAMICS_HPP_

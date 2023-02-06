@@ -9,7 +9,7 @@ using namespace std;
 int width = 200;
 int height = 200;
 int cell_num = (width+2) * (height+2);
-Fluid f(image, 1.0, width, height, 1/60.0, 100, 5);			
+Fluid f(1.0, width, height, 1/60.0, 100, 5);			
 float* image = f.setImage();
 int brush_size = 10;
 
@@ -33,7 +33,7 @@ int main() {
 
 void mouse(int button, int state, int x, int y){
 	if(button == GLUT_RIGHT_BUTTON)
-		std::fill_n(image, cell_num , 0.0);
+		f.clearImage();
 	if(button == GLUT_LEFT_BUTTON) {
 		for(int i = -brush_size/2; i <= brush_size/2; ++i)
 			for(int j = -brush_size/2; j <= brush_size/2; ++j)
