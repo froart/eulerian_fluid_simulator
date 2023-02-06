@@ -6,10 +6,11 @@
 
 using namespace std;
 
-int width = 300;
-int height = 300;
-float* image = new float[width * height];
+int width = 200;
+int height = 200;
+int cell_num = (width+2) * (height+2);
 Fluid f(image, 1.0, width, height, 1/60.0, 100, 5);			
+float* image = f.setImage();
 int brush_size = 10;
 
 void loop_code() {
@@ -21,7 +22,7 @@ void loop_code() {
   	f.addWind(width/3, 2*height/3+k, speed, 0); 
   	f.addWind(2*width/3+k, 2*height/3, 0, -speed); 
   }
-	image = f.evaluate();
+	f.evaluate();
 	return;
 }
 
@@ -32,7 +33,7 @@ int main() {
 
 void mouse(int button, int state, int x, int y){
 	if(button == GLUT_RIGHT_BUTTON)
-		std::fill_n(image, width*height, 0.0);
+		std::fill_n(image, cell_num , 0.0);
 	if(button == GLUT_LEFT_BUTTON) {
 		for(int i = -brush_size/2; i <= brush_size/2; ++i)
 			for(int j = -brush_size/2; j <= brush_size/2; ++j)

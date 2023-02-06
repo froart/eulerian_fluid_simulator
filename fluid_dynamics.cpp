@@ -7,7 +7,9 @@
 
 using namespace std;
 
+// DEBUG
 #define mark(x) cout << "reached the mark; " << x << endl // DEBUG MARK
+#define freeze(x) if(x) for(;;) cout << "simulation frozen! ";
 
 #define U_FIELD 0
 #define V_FIELD 1
@@ -53,8 +55,13 @@ Fluid::Fluid(float* image,
 	over_relaxation_ = 1.9;
 };
 
+float* Fluid::setImage() {
+	return &m_[0];
+}
+int flag = 0;
 void Fluid::addSmoke(int x, int y, float amount) {
 	m_[I(x,y)] = amount;
+	flag = 1;
 }
 
 void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
@@ -62,14 +69,12 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 	v_[I(x,y)] = y_amount;
 }
 
-float* Fluid::evaluate() {
+void Fluid::evaluate() {
 	fill(p_.begin(), p_.end(), 0.0);
 	project();
 	extrapolate();
 	advect_velocity();
 	advect_smoke();
-	float* p = &m_[0];
-	return p;
 }
 
 void Fluid::project() { // force imcompressibility
@@ -135,7 +140,6 @@ void Fluid::advect_velocity() {
 				v = sample_field(x, y, V_FIELD, v_);
 				v1_[I(i,j)] = v;
 			}
-//mark(I(i,j));
 		}
 	u_.swap(u1_);
 	v_.swap(v1_);
@@ -166,10 +170,9 @@ float Fluid::sample_field(float x_p, float y_p, int field, vector<float>& vec) {
 	float y = fmax(fmin(y_p, ny_*h), h);
 
 	float dx, dy = 0.0;
-//	vector<float>& f = m_;
 	switch(field) {
-		case U_FIELD:/* f = u_;*/ dy = h2; break;
-		case V_FIELD:/* f = v_;*/ dx = h2; break;
+		case U_FIELD: dy = h2; break;
+		case V_FIELD: dx = h2; break;
 		case S_FIELD: dx = h2; dy = h2; break;
 	}
 	// TODO: what is it?
