@@ -12,11 +12,11 @@ int height = 300+2;
 int cell_num = width * height;
 Fluid f(1.0, width, height, 1/60.0, 100, 5);			
 float* image = f.setImage();
-int brush_size = 30;
+int brush_size = 100;
 
 void loop_code() {
 	// post fluid code here
-	float speed = 100;
+	float speed = 1000;
  	for(int k = -5; k < 5; ++k) {
   	f.addWind(width/3+k, height/3, 0, speed); 
   	f.addWind(2*width/3, height/3+k, -speed, 0); 

@@ -70,7 +70,7 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 
 void Fluid::evaluate() {
 	fill(p_.begin(), p_.end(), 0.0);
-	project();
+	project_fluid();
 	extrapolate();
 	advect_velocity();
 	advect_smoke();
@@ -80,7 +80,7 @@ void Fluid::clearImage() {
 	std::fill(m_.begin(), m_.end() , 0.0);
 }
 
-void Fluid::project() { // force imcompressibility
+void Fluid::project_fluid() { // force imcompressibility
 	for(int k = 0; k < it_; k++)
 		for(int j = 1; j < ny_-1; j++)
 			for(int i = 1; i < nx_-1; i++) {
