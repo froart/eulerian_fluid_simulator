@@ -3,13 +3,14 @@
 #include <iostream>
 #include <omp.h>
 #include <memory>
+#include <unistd.h>
 
 using namespace std;
 
-int width = 200;
-int height = 200;
-int cell_num = (width+2) * (height+2);
-Fluid f(1.0, width, height, 1/60.0, 100, 5);			
+int width = 200+2;
+int height = 200+2;
+int cell_num = width * height;
+Fluid f(1.0, width, height, 1/120.0, 100, 5);			
 float* image = f.setImage();
 int brush_size = 10;
 
@@ -43,11 +44,6 @@ void mouse(int button, int state, int x, int y){
 
 void keyboard(unsigned char c, int x, int y) {
   if(c == 27) {
-//		cout << "image destructor is called" << endl;
-//		delete[] image;
-//		delete &f;
 		exit(0);
 	}
 }
-
-

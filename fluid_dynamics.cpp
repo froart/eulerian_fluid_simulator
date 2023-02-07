@@ -8,8 +8,8 @@
 using namespace std;
 
 // DEBUG
-#define mark(x) cout << "reached the mark; " << x << endl // DEBUG MARK
-#define freeze(x) if(x) for(;;) cout << "simulation frozen! ";
+#define mark(name) cout << "reached the mark; " << name << endl // DEBUG MARK
+#define freeze(flag) if(flag){cout << "simulation frozen! "; for(;;);} 
 
 #define U_FIELD 0
 #define V_FIELD 1
@@ -24,12 +24,12 @@ Fluid::Fluid(float cell_size,
 						 float dens,
 						 int iterations) 
 						 : cell_size_(cell_size),
-							 nx_(nx+2),
-							 ny_(ny+2),
+							 nx_(nx),
+							 ny_(ny),
 							 dt_(dt),
 							 dens_(dens),
 							 it_(iterations) {
-	int cell_num = (nx+2) * (ny+2);
+	int cell_num = nx_ * ny_;
 	vector<float> u(cell_num, 0.0);
 	vector<float> v(cell_num, 0.0);
 	vector<float> u1(cell_num, 0.0);
@@ -38,9 +38,9 @@ Fluid::Fluid(float cell_size,
 	vector<float> s(cell_num, 1.0); // 1.0 for fluid
 	vector<float> m(cell_num, 0.0);
 	vector<float> m1(cell_num, 0.0);
-	for(int j = 0; j < ny; ++j)
-		for(int i = 0; i < nx; ++i) {
-			if(i == 0 || j == 0 || j == ny-1) // right border is opened for the smoke to flow out
+	for(int j = 0; j < ny_; ++j)
+		for(int i = 0; i < nx_; ++i) {
+			if(i == 0 || j == 0 || j == ny_-1) // right border is opened for the smoke to flow out
 				s[I(i,j)] == 0.0; // 0.0 for obstacle
 			}
 	u_.swap(u);
@@ -59,7 +59,7 @@ float* Fluid::setImage() {
 }
 int flag = 0;
 void Fluid::addSmoke(int x, int y, float amount) {
-	m_[x+(nx_-2)*y] = amount;
+	m_[I(x,y)] = amount;
 	flag = 1;
 }
 
@@ -69,6 +69,7 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 }
 
 void Fluid::evaluate() {
+	//cout << m_[4*nx_+4] << " ";
 	fill(p_.begin(), p_.end(), 0.0);
 	project();
 	extrapolate();
