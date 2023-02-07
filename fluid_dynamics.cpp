@@ -69,7 +69,7 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 }
 
 void Fluid::evaluate() {
-	//cout << m_[4*nx_+4] << " ";
+	cout << m_[I(nx_/2,ny_/2)] << " ";
 	fill(p_.begin(), p_.end(), 0.0);
 	project();
 	extrapolate();
@@ -78,7 +78,7 @@ void Fluid::evaluate() {
 }
 
 void Fluid::clearImage() {
-		std::fill(m_.begin(), m_.end() , 0.0);
+	std::fill(m_.begin(), m_.end() , 0.0);
 }
 
 void Fluid::project() { // force imcompressibility
@@ -158,8 +158,8 @@ void Fluid::advect_smoke() {
 			if(s_[I(i,j)]) {
 				float u = (u_[I(i,j)] + u_[I(i+1,j)]) * 0.5;	
 				float v = (v_[I(i,j)] + v_[I(i,j+1)]) * 0.5;	
-				float x = i*h + h2 - dt_*u;
-				float y = j*h + h2 - dt_*v;
+				float x = (float) i * h + h2 - dt_ * u;
+				float y = (float) j * h + h2 - dt_ * v;
 				m1_[I(i,j)] = sample_field(x, y, S_FIELD, m_);
 			}
 	m_.swap(m1_);	
@@ -191,9 +191,9 @@ float Fluid::sample_field(float x_p, float y_p, int field, vector<float>& vec) {
 	float sx = 1.0 - tx;
 	float sy = 1.0 - ty;
 
-	float val = sx * sy * vec[x0*nx_+y0]
-						+ tx * sy * vec[x1*nx_+y0]
-						+ tx * ty * vec[x1*nx_+y1]
-						+ sx * ty * vec[x0*nx_+y1];
+	float val = sx * sy * vec[I(x0,y0)]
+						+ tx * sy * vec[I(x1,y0)]
+						+ tx * ty * vec[I(x1,y1)]
+						+ sx * ty * vec[I(x0,y1)];
 	return val;
 } 
