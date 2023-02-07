@@ -69,7 +69,6 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 }
 
 void Fluid::evaluate() {
-	cout << m_[I(nx_/2,ny_/2)] << " ";
 	fill(p_.begin(), p_.end(), 0.0);
 	project();
 	extrapolate();
@@ -118,8 +117,8 @@ void Fluid::extrapolate() { // enforce border conditions
 }
 
 void Fluid::advect_velocity() {
-	u1_.swap(u_);
-	v1_.swap(v_);
+	u1_ = u_;
+	v1_ = v_;
 	float h = cell_size_;
 	float h2 = cell_size_ * 0.5;
 	for(int j = 1; j < ny_; j++)
@@ -145,12 +144,12 @@ void Fluid::advect_velocity() {
 				v1_[I(i,j)] = v;
 			}
 		}
-	u_.swap(u1_);
-	v_.swap(v1_);
+	u_ = u1_;
+	v_ = v1_;
 }
 
 void Fluid::advect_smoke() {
-	m1_.swap(m_);	
+	m1_= m_;	
 	float h = cell_size_;
 	float h2 = 0.5 * h;
 	for(int j = 1; j < ny_-1; ++j)
@@ -158,11 +157,11 @@ void Fluid::advect_smoke() {
 			if(s_[I(i,j)]) {
 				float u = (u_[I(i,j)] + u_[I(i+1,j)]) * 0.5;	
 				float v = (v_[I(i,j)] + v_[I(i,j+1)]) * 0.5;	
-				float x = (float) i * h + h2 - dt_ * u;
-				float y = (float) j * h + h2 - dt_ * v;
+				float x = ((float) i) * h + h2 - dt_ * u;
+				float y = ((float) j) * h + h2 - dt_ * v;
 				m1_[I(i,j)] = sample_field(x, y, S_FIELD, m_);
 			}
-	m_.swap(m1_);	
+	m_= m1_;	
 }
 
 float Fluid::sample_field(float x_p, float y_p, int field, vector<float>& vec) {
