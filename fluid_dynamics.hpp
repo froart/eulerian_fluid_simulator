@@ -23,7 +23,6 @@ class Fluid {
 		vector<float> m_;
 		vector<float> m1_;
 		void project_fluid();
-		void project_smoke();
 		void extrapolate();
 		void advect_velocity();
 		void advect_smoke();

@@ -30,37 +30,27 @@ Fluid::Fluid(float cell_size,
 							 dens_(dens),
 							 it_(iterations) {
 	int cell_num = nx_ * ny_;
-	vector<float> u(cell_num, 0.0);
-	vector<float> v(cell_num, 0.0);
-	vector<float> u1(cell_num, 0.0);
-	vector<float> v1(cell_num, 0.0);
-	vector<float> p(cell_num, 0.0);
-	vector<float> s(cell_num, 1.0); // 1.0 for fluid
-	vector<float> m(cell_num, 0.0);
-	vector<float> m1(cell_num, 0.0);
+	u_ = move(vector<float> (cell_num, 0.0));
+	v_ = move(vector<float> (cell_num, 0.0));
+	u1_ = move(vector<float> (cell_num, 0.0));
+	v1_ = move(vector<float> (cell_num, 0.0));
+	p_ = move(vector<float> (cell_num, 0.0));
+	s_ = move(vector<float> (cell_num, 1.0)); // 1.0 for fluid
+	m_ = move(vector<float> (cell_num, 0.0));
+	m1_ = move(vector<float> (cell_num, 0.0));
 	for(int j = 0; j < ny_; ++j)
 		for(int i = 0; i < nx_; ++i) {
-			if(i == 0 || j == 0 || j == ny_-1) // right border is opened for the smoke to flow out
-				s[I(i,j)] == 0.0; // 0.0 for obstacle
+			if(i == 0 || j == 0 || j == ny_-1 || i == nx_-1) // borders
+				s_[I(i,j)] == 0.0; // 0.0 for obstacle
 			}
-	u_.swap(u);
-	v_.swap(v);
-	u1_.swap(u1);
-	v1_.swap(v1);
-	p_.swap(p);
-	s_.swap(s);
-	m_.swap(m);
-	m1_.swap(m1);
 	over_relaxation_ = 1.9;
 };
 
 float* Fluid::setImage() {
 	return &m_[0];
 }
-int flag = 0;
 void Fluid::addSmoke(int x, int y, float amount) {
 	m_[I(x,y)] = amount;
-	flag = 1;
 }
 
 void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
@@ -70,14 +60,14 @@ void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
 
 void Fluid::evaluate() {
 	fill(p_.begin(), p_.end(), 0.0);
-	project_fluid();
-	extrapolate();
 	advect_velocity();
 	advect_smoke();
+	project_fluid();
+	extrapolate();
 }
 
 void Fluid::clearImage() {
-	std::fill(m_.begin(), m_.end() , 0.0);
+	fill(m_.begin(), m_.end() , 0.0);
 }
 
 void Fluid::project_fluid() { // force imcompressibility
@@ -106,13 +96,13 @@ void Fluid::project_fluid() { // force imcompressibility
 }
 
 void Fluid::extrapolate() { // enforce border conditions
-	for(int i = 0; i < nx_; ++i) {
-		u_[I(i,0)] = u_[I(i,1)]; // left wall
-		u_[I(i,ny_-1)] = u_[I(i,ny_-2)]; // right wall
-	}
 	for(int j = 0; j < ny_; ++j) {
-		v_[I(0,j)] = v_[I(1,j)]; // bottom wall
-		v_[I(nx_-1,j)] = v_[I(nx_-2,j)]; // top wall
+		u_[I(0,j)] = -u_[I(1,j)]; // left wall
+		u_[I(nx_-1,j)] = -u_[I(nx_-2,j)]; // right wall
+	}
+	for(int i = 0; i < nx_; ++i) {
+		v_[I(i,0)] = -v_[I(i,1)]; // bottom wall
+		v_[I(i,ny_-1)] = -v_[I(i,ny_-2)]; // top wall
 	}
 }
 
@@ -121,8 +111,8 @@ void Fluid::advect_velocity() {
 	v1_ = v_;
 	float h = cell_size_;
 	float h2 = cell_size_ * 0.5;
-	for(int j = 1; j < ny_; j++)
-		for(int i = 1; i < nx_; i++) {
+	for(int j = 1; j < ny_-1; j++)
+		for(int i = 1; i < nx_-1; i++) {
 			if(s_[I(i,j)] && s_[I(i,j-1)] && j < ny_-1) { // u-component
 				float x = (float) i * h;
 				float y = (float) j * h + h2; // u-component is situated at this point
@@ -149,7 +139,7 @@ void Fluid::advect_velocity() {
 }
 
 void Fluid::advect_smoke() {
-	m1_= m_;	
+	m1_ = m_;	
 	float h = cell_size_;
 	float h2 = 0.5 * h;
 	for(int j = 1; j < ny_-1; ++j)
@@ -161,7 +151,7 @@ void Fluid::advect_smoke() {
 				float y = ((float) j) * h + h2 - dt_ * v;
 				m1_[I(i,j)] = sample_field(x, y, S_FIELD, m_);
 			}
-	m_= m1_;	
+	m_ = m1_;	
 }
 
 float Fluid::sample_field(float x_p, float y_p, int field, vector<float>& vec) {
