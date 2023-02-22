@@ -1,5 +1,4 @@
-#ifndef OPENGL_SETUP_HPP_
-#define OPENGL_SETUP_HPP_
+#pragma once
 
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -17,4 +16,3 @@ void render(void);
 void loop(void);
 void loop_code(void);
 
-#endif // OPENGL_SETUP_HPP_

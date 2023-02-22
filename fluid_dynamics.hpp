@@ -1,5 +1,4 @@
-#ifndef FLUID_DYNAMICS_HPP_
-#define FLUID_DYNAMICS_HPP_
+#pragma once
 
 #include <vector>
 
@@ -36,4 +35,3 @@ class Fluid {
 		void clearImage();
 };
 
-#endif // FLUID_DYNAMICS_HPP_
