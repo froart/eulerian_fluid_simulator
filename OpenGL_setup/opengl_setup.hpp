@@ -9,7 +9,7 @@ extern float* image;
 extern int width;
 extern int height; 
 
-void runSimulation(char*);
+void runSimulation(std::string);
 void keyboard(unsigned char, int, int);
 void mouse(int, int, int, int);
 void render(void);

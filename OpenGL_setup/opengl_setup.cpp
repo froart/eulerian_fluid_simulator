@@ -1,13 +1,13 @@
-#include "../inc/opengl_setup.hpp"
+#include "opengl_setup.hpp"
 
-void runSimulation(char* name) {
+void runSimulation(std::string name) {
 	int argc = 1;
   char* argv[1] = {(char*) "OpenGL"};
   glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(width, height);
-	glutCreateWindow(name);
+	glutCreateWindow(name.c_str());
 	glutDisplayFunc(render);
 	glutIdleFunc(loop);
 	glutKeyboardFunc(keyboard);

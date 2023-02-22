@@ -1,10 +1,11 @@
-#include "../opengl_setup.hpp"
-#include "../fluid_dynamics.hpp"
+#include <opengl_setup.hpp>
+#include <fluid_dynamics.hpp>
 #include <iostream>
 #include <omp.h>
 #include <memory>
 #include <unistd.h>
 #include <cmath>
+#include <numbers>
 #include <tuple>
 
 using namespace std;
@@ -23,7 +24,7 @@ void circular_vortex(float R, float x0, float y0, float speed) {
 	float v0 = speed;
 	float xp = R*cos(0)+x0;
 	float yp = R*sin(0)+y0;
-	float s = 2*numbers::pi/360;
+	float s = 2*3.14/360;
 	f.addWind(xp, yp, u0, v0);
 	// circular vortex
 	for(int i = 1; i < 360; ++i) {		

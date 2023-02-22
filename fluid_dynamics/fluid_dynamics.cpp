@@ -1,5 +1,5 @@
-#include "../inc/fluid_dynamics.hpp"
-#include "../inc/opengl_setup.hpp"
+#include "fluid_dynamics.hpp"
+#include "opengl_setup.hpp"
 #include <cmath>
 #include <iostream>
 #include <omp.h>
