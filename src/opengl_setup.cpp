@@ -1,4 +1,4 @@
-#include "opengl_setup.hpp"
+#include "../inc/opengl_setup.hpp"
 
 void runSimulation(char* name) {
 	int argc = 1;
