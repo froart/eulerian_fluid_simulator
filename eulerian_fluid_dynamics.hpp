@@ -5,33 +5,33 @@
 using namespace std;
 
 class Fluid {
-	private:
-		float cell_size_;
-		int nx_;
-		int ny_;
-		float dt_;
-		int it_;
-		float dens_;
-		float over_relaxation_;
-		vector<float> v_;
-		vector<float> u_;
-		vector<float> v1_;
-		vector<float> u1_;
-		vector<float> p_;
-		vector<float> s_;
-		vector<float> m_;
-		vector<float> m1_;
-		void project_fluid();
-		void extrapolate();
-		void advect_velocity();
-		void advect_smoke();
-		float sample_field(float, float, int, vector<float>&);
+  private:
+	  float m_cell_size;
+	  int m_nx; // number of cells on x-axis
+	  int m_ny; // number of cells on y-axis
+	  float m_dt; // time differential 
+	  int m_niter; // number of iterations for backward finite difference
+	  float m_dens; // density 
+	  float m_ovrelax; // over relaxion coefficient
+	  vector<float> m_vx; // velocity on x-axis
+	  vector<float> m_vy; // velocity on y-axis
+	  vector<float> m_vx1; // previous velocity on x-axis
+	  vector<float> m_vy1; // previous velocity on y-axis
+	  vector<float> m_p; // pressure
+	  vector<float> m_s; // occupance of the cell by fluid
+	  vector<float> m_m; // smoke density
+	  vector<float> m_m1; // previous smoke density
+	  void project_fluid();
+	  void extrapolate();
+	  void advect_velocity();
+	  void advect_smoke();
+	  float sample_field(float, float, int, vector<float>&);
 	public:
-		Fluid(float, int, int, float, float, int);
-		float* setImage();
-		void addSmoke(int, int, float);
-		void addWind(int, int, float, float);
-		void evaluate();
-		void clearImage();
+	  Fluid(float, int, int, float, float, int);
+	  float* getImage();
+	  void addSmoke(int, int, float);
+	  void addWind(int, int, float, float);
+	  void evaluate();
+	  void clearImage();
 };
 
