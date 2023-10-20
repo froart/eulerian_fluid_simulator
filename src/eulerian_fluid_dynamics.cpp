@@ -2,7 +2,7 @@
 #include <iostream>
 #include <omp.h>
 #include <vector>
-#include "eulerian_fluid_dynamics.hpp"
+#include "../include/eulerian_fluid_dynamics.hpp"
 #include <vt_framebuffer.hpp>
 
 using namespace std;
