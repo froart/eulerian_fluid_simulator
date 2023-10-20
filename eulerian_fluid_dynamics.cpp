@@ -1,188 +1,264 @@
-#include "fluid_dynamics.hpp"
-#include "opengl_setup.hpp"
 #include <cmath>
 #include <iostream>
 #include <omp.h>
 #include <vector>
+#include "eulerian_fluid_dynamics.hpp"
+#include <vt_framebuffer.hpp>
 
 using namespace std;
-
-// DEBUG
-#define mark(name) cout << "reached the mark; " << name << endl // DEBUG MARK
-#define freeze(flag) if(flag){cout << "simulation frozen! "; for(;;);} 
 
 #define U_FIELD 0
 #define V_FIELD 1
 #define S_FIELD 2
 
-#define I(x,y) ((x)+(nx_)*(y))
+#define I(y,x) ((x)+(this->pParameters->nx)*(y)) // index of an image
 
-Fluid::Fluid(float cell_size,
-						 int nx, 
-						 int ny, 
-						 float dt,
-						 float dens,
-						 int iterations) 
-						 : cell_size_(cell_size),
-							 nx_(nx),
-							 ny_(ny),
-							 dt_(dt),
-							 dens_(dens),
-							 it_(iterations) {
-	int cell_num = nx_ * ny_;
-	u_ = move(vector<float> (cell_num, 0.0));
-	v_ = move(vector<float> (cell_num, 0.0));
-	u1_ = move(vector<float> (cell_num, 0.0));
-	v1_ = move(vector<float> (cell_num, 0.0));
-	p_ = move(vector<float> (cell_num, 0.0));
-	s_ = move(vector<float> (cell_num, 1.0)); // 1.0 for fluid
-	m_ = move(vector<float> (cell_num, 0.0));
-	m1_ = move(vector<float> (cell_num, 0.0));
-	for(int j = 0; j < ny_; ++j)
-		for(int i = 0; i < nx_; ++i) {
-			if(i == 0 || j == 0 || j == ny_-1 || i == nx_-1) // borders
-				s_[I(i,j)] == 0.0; // 0.0 for obstacle
-			}
-	over_relaxation_ = 1.9;
+struct Fields
+{
+
+  vector<float>* sm;   // smoke density
+  vector<float>  sm_p; // previous smoke density
+  vector<float>  vx;   // velocity on x-axis
+  vector<float>  vy;   // velocity on y-axis
+  vector<float>  vx_p; // previous velocity on x-axis
+  vector<float>  vy_p; // previous velocity on y-axis
+  vector<float>  pr;   // pressure
+  vector<float>  oc;   // occupance of the cell by fluid
+ 
 };
 
-float* Fluid::setImage() {
-	return &m_[0];
-}
-void Fluid::addSmoke(int x, int y, float amount) {
-	m_[I(x,y)] = amount;
+struct Parameters
+{
+
+  float cell_size;
+  int   nx; // number of cells on x-axis
+  int   ny; // number of cells on y-axis
+  float dt; // time differential 
+  int   niter; // number of iterations for backward finite difference
+  float dens; // density 
+  float ovrelax; // over relaxion coefficient
+
+};
+
+Gas::Gas( vector<float>* image,
+          float cell_size, 
+          int nx, 
+          int ny, 
+          float dt, 
+          float dens, 
+          int niter )
+{
+
+	int cell_num = nx * ny;
+
+  this->pFields       = new Fields;
+  this->pFields->sm   = image; // assign
+	this->pFields->sm_p = move( vector<float>( cell_num, 0.0 ) );
+	this->pFields->vx   = move( vector<float>( cell_num, 0.0 ) );
+	this->pFields->vy   = move( vector<float>( cell_num, 0.0 ) );
+	this->pFields->vx_p = move( vector<float>( cell_num, 0.0 ) );
+	this->pFields->vy_p = move( vector<float>( cell_num, 0.0 ) );
+	this->pFields->pr   = move( vector<float>( cell_num, 0.0 ) );
+	this->pFields->oc   = move( vector<float>( cell_num, 1.0 ) ); // 1.0 for fluid / 0.0 for obstacle
+  
+  this->pParameters            = new Parameters;
+  this->pParameters->cell_size = cell_size;
+  this->pParameters->nx        = nx;
+  this->pParameters->ny        = ny;
+  this->pParameters->dt        = dt;
+  this->pParameters->niter     = niter;
+  this->pParameters->ovrelax   = 1.9;
+
+	for( int j = 0; j < ny; ++j )
+		for( int i = 0; i < nx; ++i )
+    {
+			if( i == 0 || j == 0 || j == ny - 1 || i == nx - 1 ) // borders
+				this->pFields->oc[I( j, i )] == 0.0; // 0.0 for obstacle
+		}
+};
+
+void Gas::addSmoke( int y, int x, float amount )
+{
+
+	(*(this->pFields->sm))[I( y, x )] = amount;
+ 
 }
 
-void Fluid::addWind(int x, int y, float x_amount, float y_amount) {
-	u_[I(x,y)] = x_amount;
-	v_[I(x,y)] = y_amount;
+void Gas::addWind( int y, int x, float y_amount, float x_amount )
+{
+
+	this->pFields->vx[I( y, x )] = x_amount;
+	this->pFields->vy[I( y, x )] = y_amount;
+
 }
 
-void Fluid::evaluate() {
-	fill(p_.begin(), p_.end(), 0.0);
+void Gas::evaluate()
+{
+
 	advect_velocity();
 	advect_smoke();
 	project_fluid();
 	extrapolate();
+
 }
 
-void Fluid::clearImage() {
-	fill(m_.begin(), m_.end() , 0.0);
-}
+void Gas::project_fluid()
+{ // force imcompressibility
 
-void Fluid::project_fluid() { // force imcompressibility
-	for(int k = 0; k < it_; k++)
-		for(int j = 1; j < ny_-1; j++)
-			for(int i = 1; i < nx_-1; i++) {
-				if(!s_[I(i,j)]) continue; // if evaluating at an obstacle
-				float sx0 = s_[I(i-1,j)];
-				float sx1 = s_[I(i+1,j)];
-				float sy0 = s_[I(i,j-1)];
-				float sy1 = s_[I(i,j+1)];
-				float s = sx0 + sx1 + sy0 + sy1;
-				if(!s) continue; // if nothing to compute here...
-				float div = u_[I(i+1,j)] - u_[I(i,j)] + v_[I(i,j+1)] - v_[I(i,j)];
-				// computing the pressure (not necessary for the simulation
-				// FIXME  should be minus???
-				float p = -(div / s) * over_relaxation_;
-				// TODO where does this equation come from???
-				p_[I(i,j)] += p * (dens_ * cell_size_) / dt_; 
-				// fix the fluid to be imcompressible
-				u_[I(i,j)] -= sx0 * p;
-				u_[I(i+1,j)] += sx1 * p;
-				v_[I(i,j)] -= sy0 * p;
-				v_[I(i,j+1)] += sy1 * p;
+	for(int k = 0; k < this->pParameters->niter; k++)
+		for(int j = 1; j < this->pParameters->ny-1; j++)
+			for(int i = 1; i < this->pParameters->nx-1; i++)
+      {
+			  if(!this->pFields->oc[I( j, i )]) continue; // if evaluating at an obstacle
+			  float sx0 = this->pFields->oc[I( j, i-1 )];
+			  float sx1 = this->pFields->oc[I( j, i+1 )];
+			  float sy0 = this->pFields->oc[I( j-1, i )];
+			  float sy1 = this->pFields->oc[I( j+1, i )];
+			  float s = sx0 + sx1 + sy0 + sy1;
+			  if(!s) continue; // if nothing to compute here...
+			  float div = + this->pFields->vx[I( j, i+1 )] 
+                    - this->pFields->vx[I( j, i   )] 
+                    + this->pFields->vy[I( j+1, i )] 
+                    - this->pFields->vy[I( j, i   )];
+			  // computing the pressure (not necessary for the simulation
+			  // FIXME  should be minus???
+			  float p = -(div / s) * this->pParameters->ovrelax;
+			  // TODO where does this equation come from???
+			  this->pFields->pr[I( j, i )] += p * (this->pParameters->dens * this->pParameters->cell_size) / this->pParameters->dt; 
+			  // fix the fluid to be imcompressible
+			  this->pFields->vx[I( j, i   )] -= sx0 * p;
+			  this->pFields->vx[I( j, i+1 )] += sx1 * p;
+			  this->pFields->vy[I( j, i   )] -= sy0 * p;
+			  this->pFields->vy[I( j+1, i )] += sy1 * p;
 			}
+
 }
 
-void Fluid::extrapolate() { // enforce border conditions
-	for(int j = 0; j < ny_; ++j) {
-		u_[I(0,j)] = -u_[I(1,j)]; // left wall
-		u_[I(nx_-1,j)] = -u_[I(nx_-2,j)]; // right wall
+void Gas::extrapolate()
+{ // enforce border conditions
+
+	for(int j = 0; j < this->pParameters->ny; ++j)
+  {
+		this->pFields->vx[I( j, 0 )] = -this->pFields->vx[I( j, 1 )]; // left wall
+		this->pFields->vx[I( j, this->pParameters->nx-1 )] = -this->pFields->vx[I( j, this->pParameters->nx-2 )]; // right wall
 	}
-	for(int i = 0; i < nx_; ++i) {
-		v_[I(i,0)] = -v_[I(i,1)]; // bottom wall
-		v_[I(i,ny_-1)] = -v_[I(i,ny_-2)]; // top wall
+
+	for(int i = 0; i < this->pParameters->nx; ++i)
+  {
+		this->pFields->vy[I( 0, i )] = -this->pFields->vy[I( 1, i )]; // bottom wall
+		this->pFields->vy[I( this->pParameters->ny-1 , i )] = -this->pFields->vy[I( this->pParameters->ny-2, i )]; // top wall
 	}
+
 }
 
-void Fluid::advect_velocity() {
-	u1_ = u_;
-	v1_ = v_;
-	float h = cell_size_;
-	float h2 = cell_size_ * 0.5;
-	for(int j = 1; j < ny_-1; j++)
-		for(int i = 1; i < nx_-1; i++) {
-			if(s_[I(i,j)] && s_[I(i,j-1)] && j < ny_-1) { // u-component
-				float x = (float) i * h;
-				float y = (float) j * h + h2; // u-component is situated at this point
-				float u = u_[I(i,j)];	
-				float v = (v_[I(i-1,j)] + v_[I(i-1,j+1)] + v_[I(i,j)] + v_[I(i,j+1)]) * 0.25;	// v-component in this case is averaged by 4 values around
-				x -= u*dt_;
-				y -= v*dt_;
-				u = sample_field(x, y, U_FIELD, u_);
-				u1_[I(i,j)] = u;
+void Gas::advect_velocity()
+{
+
+	this->pFields->vx_p = this->pFields->vx;
+	this->pFields->vy_p = this->pFields->vy;
+	float h = this->pParameters->cell_size;
+	float h2 = h * 0.5;
+	for(int j = 1; j < this->pParameters->ny-1; j++)
+		for(int i = 1; i < this->pParameters->nx-1; i++)
+    {
+			if( this->pFields->oc[I( j, i )]
+          && this->pFields->oc[I( j-1, i )]
+          && j < this->pParameters->ny-1 ) 
+      { // x-component
+				float x = static_cast<float>( i ) * h ;
+				float y = static_cast<float>( j ) * h + h2; // x-component is situated at this point
+				float u = this->pFields->vx[I( j, i )];	
+				float v = ( + this->pFields->vy[I( j, i-1 )] 
+                    + this->pFields->vy[I( j+1, i-1 )] 
+                    + this->pFields->vy[I( j, i )] 
+                    + this->pFields->vy[I( j+1, i)] ) * 0.25;	// y-component in this case is averaged by 4 values around
+				x -= u * this->pParameters->dt;
+				y -= v * this->pParameters->dt;
+				u = sample_field( y, x, U_FIELD, this->pFields->vx );
+				this->pFields->vx_p[I( j, i )] = u;
 			}
-			if(s_[I(i,j)] && s_[I(i-1,j)] && i < nx_-1) { // v-component
-				float x = (float) i * h + h2; // v-component is situated at this point
-				float y = (float) j * h;
-				float u = (u_[I(i,j)] + u_[I(i,j-1)] + u_[I(i+1,j-1)] + u_[I(i+1,j)]) * 0.25;	// u-component in this case is averaged by 4 values around
-				float v = v_[I(i,j)];	
-				x -= u*dt_;
-				y -= v*dt_;
-				v = sample_field(x, y, V_FIELD, v_);
-				v1_[I(i,j)] = v;
+
+			if( this->pFields->oc[I( j, i )] 
+          && this->pFields->oc[I( j, i-1 )] 
+          && i < this->pParameters->nx-1 ) 
+      { // y-component
+				float x = static_cast<float>( i ) * h + h2; // y-component is situated at this point
+				float y = static_cast<float>( j ) * h;
+				float u = ( + this->pFields->vx[I( j, i )]
+                    + this->pFields->vx[I( j-1, i )]
+                    + this->pFields->vx[I( j-1, i+1 )] 
+                    + this->pFields->vx[I( j, i+1 )] ) * 0.25;	// x-component in this case is averaged by 4 values around
+				float v = this->pFields->vy[I( j, i )];	
+				x -= u * this->pParameters->dt;
+				y -= v * this->pParameters->dt;
+				v = sample_field(y, x, V_FIELD, this->pFields->vy );
+				this->pFields->vy_p[I( j, i )] = v;
 			}
 		}
-	u_ = u1_;
-	v_ = v1_;
+	this->pFields->vx = this->pFields->vx_p;
+	this->pFields->vy = this->pFields->vy_p;
+
 }
 
-void Fluid::advect_smoke() {
-	m1_ = m_;	
-	float h = cell_size_;
+void Gas::advect_smoke()
+{
+
+	this->pFields->sm_p = *(this->pFields->sm);
+	float h = this->pParameters->cell_size;
 	float h2 = 0.5 * h;
-	for(int j = 1; j < ny_-1; ++j)
-		for(int i = 1; i < nx_-1; ++i)
-			if(s_[I(i,j)]) {
-				float u = (u_[I(i,j)] + u_[I(i+1,j)]) * 0.5;	
-				float v = (v_[I(i,j)] + v_[I(i,j+1)]) * 0.5;	
-				float x = ((float) i) * h + h2 - dt_ * u;
-				float y = ((float) j) * h + h2 - dt_ * v;
-				m1_[I(i,j)] = sample_field(x, y, S_FIELD, m_);
+	for(int j = 1; j < this->pParameters->ny-1; ++j)
+		for(int i = 1; i < this->pParameters->nx-1; ++i)
+			if(this->pFields->oc[I( j, i )] ) 
+      {
+				float u = ( this->pFields->vx[I( j, i )] + this->pFields->vx[I( j, i+1 )] ) * 0.5;	
+				float v = ( this->pFields->vy[I( j, i )] + this->pFields->vy[I( j+1, i )] ) * 0.5;	
+				float x = static_cast<float>( i ) * h + h2 - this->pParameters->dt * u;
+				float y = static_cast<float>( j ) * h + h2 - this->pParameters->dt * v;
+				this->pFields->sm_p[I( j, i )] = sample_field(y, x, S_FIELD, *(this->pFields->sm) );
 			}
-	m_ = m1_;	
+	*(this->pFields->sm) = this->pFields->sm_p;
+
 }
 
-float Fluid::sample_field(float x_p, float y_p, int field, vector<float>& vec) {
-	float h = cell_size_;
-	float h1 = 1.0 / cell_size_;
-	float h2 = cell_size_ * 0.5;
-	
-	float x = fmax(fmin(x_p, nx_*h), h);
-	float y = fmax(fmin(y_p, ny_*h), h);
+float Gas::sample_field( float y_p, float x_p, int field, vector<float>& field_vec )
+{
 
-	float dx, dy = 0.0;
-	switch(field) {
-		case U_FIELD: dy = h2; break;
-		case V_FIELD: dx = h2; break;
+	float h  = this->pParameters->cell_size;
+	float h1 = 1.0 / this->pParameters->cell_size;
+	float h2 = this->pParameters->cell_size * 0.5;
+	
+	float x = fmax( fmin( x_p, this->pParameters->nx * h ), h );
+	float y = fmax( fmin( y_p, this->pParameters->ny * h ), h );
+
+	float dx = 0.0, dy = 0.0;
+	switch( field )
+  {
+		case U_FIELD: dy = h2;          break;
+		case V_FIELD: dx = h2;          break;
 		case S_FIELD: dx = h2; dy = h2; break;
 	}
 	// TODO: what is it?
-	float x0 = fmin(floor((x-dx)*h1), nx_-1); 	
-	float tx = ((x-dx) - x0*h) * h1;
-	float x1 = fmin(x0 + 1, nx_-1);
+	float x0 = fmin( floor( ( x-dx ) * h1), this->pParameters->nx-1 ); 	
+	float tx = ( ( x-dx ) - x0 * h ) * h1;
+	float x1 = fmin( x0 + 1, this->pParameters->nx-1 );
 
-	float y0 = fmin(floor((y-dy)*h1), ny_-1); 	
-	float ty = ((y-dy) - y0*h) * h1;
-	float y1 = fmin(y0 + 1, ny_-1);
+	float y0 = fmin( floor( ( y-dy ) * h1 ), this->pParameters->ny-1 ); 	
+	float ty = ( ( y-dy ) - y0 * h ) * h1;
+	float y1 = fmin( y0 + 1, this->pParameters->ny-1 );
 
 	float sx = 1.0 - tx;
 	float sy = 1.0 - ty;
 
-	float val = sx * sy * vec[I(x0,y0)]
-						+ tx * sy * vec[I(x1,y0)]
-						+ tx * ty * vec[I(x1,y1)]
-						+ sx * ty * vec[I(x0,y1)];
+	float val = sx * sy * field_vec[I( y0, x0 )]
+						+ tx * sy * field_vec[I( y0, x1 )]
+						+ tx * ty * field_vec[I( y1, x1 )]
+						+ sx * ty * field_vec[I( y1, x0 )];
 	return val;
+
 } 
+
+Gas::~Gas()
+{
+  delete this->pParameters;
+  delete this->pFields;
+}
