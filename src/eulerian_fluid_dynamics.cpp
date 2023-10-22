@@ -16,7 +16,7 @@ using namespace std;
 struct Fields
 {
 
-  vector<float>* sm;   // smoke density
+  vector<float>  sm;   // smoke density
   vector<float>  sm_p; // previous smoke density
   vector<float>  vx;   // velocity on x-axis
   vector<float>  vy;   // velocity on y-axis
@@ -40,8 +40,7 @@ struct Parameters
 
 };
 
-Gas::Gas( vector<float>* image,
-          float cell_size, 
+Gas::Gas( float cell_size, 
           int nx, 
           int ny, 
           float dt, 
@@ -52,7 +51,7 @@ Gas::Gas( vector<float>* image,
 	int cell_num = nx * ny;
 
   this->pFields       = new Fields;
-  this->pFields->sm   = image; // assign
+  this->pFields->sm   = move( vector<float>( cell_num, 0.0 ) );
 	this->pFields->sm_p = move( vector<float>( cell_num, 0.0 ) );
 	this->pFields->vx   = move( vector<float>( cell_num, 0.0 ) );
 	this->pFields->vy   = move( vector<float>( cell_num, 0.0 ) );
@@ -80,7 +79,7 @@ Gas::Gas( vector<float>* image,
 void Gas::addSmoke( int y, int x, float amount )
 {
 
-	(*(this->pFields->sm))[I( y, x )] = amount;
+	this->pFields->sm[I( y, x )] = amount;
  
 }
 
@@ -203,7 +202,7 @@ void Gas::advect_velocity()
 void Gas::advect_smoke()
 {
 
-	this->pFields->sm_p = *(this->pFields->sm);
+	this->pFields->sm_p = this->pFields->sm;
 	float h = this->pParameters->cell_size;
 	float h2 = 0.5 * h;
 	for(int j = 1; j < this->pParameters->ny-1; ++j)
@@ -214,9 +213,9 @@ void Gas::advect_smoke()
 				float v = ( this->pFields->vy[I( j, i )] + this->pFields->vy[I( j+1, i )] ) * 0.5;	
 				float x = static_cast<float>( i ) * h + h2 - this->pParameters->dt * u;
 				float y = static_cast<float>( j ) * h + h2 - this->pParameters->dt * v;
-				this->pFields->sm_p[I( j, i )] = sample_field(y, x, S_FIELD, *(this->pFields->sm) );
+				this->pFields->sm_p[I( j, i )] = sample_field(y, x, S_FIELD, this->pFields->sm );
 			}
-	*(this->pFields->sm) = this->pFields->sm_p;
+	this->pFields->sm = this->pFields->sm_p;
 
 }
 
@@ -257,8 +256,17 @@ float Gas::sample_field( float y_p, float x_p, int field, vector<float>& field_v
 
 } 
 
+vector<float>& Gas::getImage()
+{
+
+  return this->pFields->sm;
+
+}
+
 Gas::~Gas()
 {
+
   delete this->pParameters;
   delete this->pFields;
+
 }
