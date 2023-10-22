@@ -18,7 +18,7 @@ class Gas {
 	  void addSmoke(int, int, float);
 	  void addWind(int, int, float, float);
 	  void evaluate();
-    vector<float>& getImage();
+    vector<float>* getSmokeField();
     ~Gas();
 };
 

@@ -3,7 +3,6 @@
 #include <omp.h>
 #include <vector>
 #include "../include/eulerian_fluid_dynamics.hpp"
-#include <vt_framebuffer.hpp>
 
 using namespace std;
 
@@ -256,10 +255,10 @@ float Gas::sample_field( float y_p, float x_p, int field, vector<float>& field_v
 
 } 
 
-vector<float>& Gas::getImage()
+vector<float>* Gas::getSmokeField()
 {
 
-  return this->pFields->sm;
+  return &this->pFields->sm;
 
 }
 
